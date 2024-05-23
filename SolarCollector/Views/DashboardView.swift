@@ -25,7 +25,6 @@ struct DashboardView: View {
 				Spacer()
 
 				ChartView(waterPlots: viewModel.waterPlots)
-					.padding(.top, 40)
 					.padding(.horizontal)
 					.frame(maxWidth: .infinity)
 					.background(Color(UIColor.secondarySystemGroupedBackground))

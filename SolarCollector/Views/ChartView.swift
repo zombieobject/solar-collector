@@ -13,40 +13,53 @@ struct ChartView: View {
 	@State private var selectedDate: Date? = nil
 
 	var body: some View {
-		Chart(waterPlots) { waterPlot in
-			ForEach(waterPlot.plotData) { plot in
-				LineMark(
-					x: .value("", plot.x, unit: .hour),
-					y: .value("", plot.y)
-				)
-				.foregroundStyle(by: .value("", waterPlot.type.rawValue))
-				.interpolationMethod(.monotone)
-			}
+		VStack {
+			Spacer()
+				.frame(height: 100)
 
-			if let selectedDate {
-				RuleMark(x: .value("", selectedDate, unit: .hour))
-					.annotation(
-						position: .top,
-						spacing: 0,
-						overflowResolution: .init(
-							x: .fit(to: .chart),
-							y: .disabled
+			if let (minDate, maxDate) = getChartScale() {
+				Chart(waterPlots) { waterPlot in
+					ForEach(waterPlot.plotData) { plot in
+						LineMark(
+							x: .value("", plot.x, unit: .hour),
+							y: .value("", plot.y)
 						)
-					) {
-						selectionPopover
+						.foregroundStyle(by: .value("", waterPlot.type.rawValue))
+						.interpolationMethod(.monotone)
 					}
+
+					if let selectedDate {
+						RuleMark(x: .value("", selectedDate, unit: .hour))
+							.annotation(
+								position: .top,
+								spacing: 0,
+								overflowResolution: .init(
+									x: .fit(to: .chart),
+									y: .disabled
+								)
+							) {
+								selectionPopover
+							}
+					}
+				}
+				.aspectRatio(1, contentMode: .fit)
+				.chartXSelection(value: $selectedDate)
+				.chartXScale(domain: minDate ... maxDate)
+				.padding(.horizontal)
+				.padding(.bottom)
 			}
 		}
-		.aspectRatio(1, contentMode: .fit)
-		.frame(height: 440)
-		.chartXSelection(value: $selectedDate)
 	}
 
 	@ViewBuilder
 	var selectionPopover: some View {
 		if let selectedDate,
-		   let solarTemp = getTemperature(for: .solar, on: selectedDate, in: waterPlots),
-		   let storageTemp = getTemperature(for: .storage, on: selectedDate, in: waterPlots) {
+		   let solarPlotInfo = getTemperature(for: .solar, on: selectedDate, in: waterPlots),
+		   let storagePlotInfo = getTemperature(for: .storage, on: selectedDate, in: waterPlots) {
+			let solarTemp = String(format: "%.2f", solarPlotInfo.y)
+			let storageTemp = String(format: "%.2f", storagePlotInfo.y)
+			let pumpStatue = String(storagePlotInfo.isPumpActive ? "ON" : "OFF")
+
 			VStack(alignment: .leading) {
 				Text(selectedDate, style: Text.DateStyle.time)
 					.foregroundStyle(Color.gray)
@@ -54,6 +67,8 @@ struct ChartView: View {
 					.foregroundStyle(Color.blue)
 				Text("Storage: \(storageTemp)")
 					.foregroundStyle(Color.green)
+				Text("Pump Status: " + pumpStatue)
+					.foregroundStyle(Color.black)
 			}
 			.font(.caption)
 			.padding(6)
@@ -66,7 +81,7 @@ struct ChartView: View {
 		}
 	}
 
-	func getTemperature(for type: PlotType, on date: Date, in waterPlots: [WaterPlot]) -> String? {
+	func getTemperature(for type: PlotType, on date: Date, in waterPlots: [WaterPlot]) -> WaterPlotInfo? {
 		let calendar = Calendar.current
 		let targetComponents = calendar.dateComponents([.year, .month, .day, .hour], from: date)
 
@@ -75,7 +90,18 @@ struct ChartView: View {
 				let plotComponents = calendar.dateComponents([.year, .month, .day, .hour], from: $0.x)
 				return plotComponents == targetComponents
 			}) {
-				return String(format: "%.2f", plotInfo.y)
+				return plotInfo
+			}
+		}
+		return nil
+	}
+
+	func getChartScale() -> (Date, Date)? {
+		if let waterPlot = waterPlots.first {
+			let plotData = waterPlot.plotData
+			if let firstPlotInfo = plotData.first,
+			   let lastPlotInfo = plotData.last {
+				return (firstPlotInfo.x, lastPlotInfo.x)
 			}
 		}
 		return nil

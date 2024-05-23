@@ -14,6 +14,7 @@ enum PlotType: String {
 
 struct WaterPlotInfo: Identifiable {
 	let id = UUID()
+	let isPumpActive: Bool
 	let x: Date
 	let y: Double
 }

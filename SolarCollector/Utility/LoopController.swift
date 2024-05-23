@@ -104,10 +104,10 @@ class LoopController {
 
 		// TODO: Account for radiationFactor
 		for report in reports {
-			let solarPlotInfo = WaterPlotInfo(x: report.date, y: report.collectorTemp)
+			let solarPlotInfo = WaterPlotInfo(isPumpActive: report.isPumpActive, x: report.date, y: report.collectorTemp)
 			solarPlot.plotData.append(solarPlotInfo)
 
-			let storagePlotInfo = WaterPlotInfo(x: report.date, y: report.storageTemp)
+			let storagePlotInfo = WaterPlotInfo(isPumpActive: report.isPumpActive, x: report.date, y: report.storageTemp)
 			storagePlot.plotData.append(storagePlotInfo)
 		}
 
